@@ -76,8 +76,8 @@
       <div class="sub">Excelencia Lingerie</div>
     </div>
     <div class="tool-row">
-      <button id="exportBtn" class="ghost small" title="Exportar todos os chamados como JSON">Exportar JSON</button>
-      <button id="exportPdfBtn" class="ghost small" title="Exportar todos os chamados em PDF">Exportar PDF</button>
+      <button id="exportBtn.onclick = downloadAllJSON" class="ghost small" title="Exportar todos os chamados como JSON">Exportar JSON</button>
+      <button id="exportPdfBtn.onclick = exportAllPdf" class="ghost small" title="Exportar todos os chamados em PDF">Exportar PDF</button>
       <label class="ghost small" style="cursor:pointer;display:inline-flex;align-items:center;">
         <input type="file" id="importFile" accept="application/json" style="display:none" />
         Importar JSON
@@ -232,6 +232,45 @@ function exportTicketPdf(ticket) {
   doc.text(`Última atualização: ${new Date(ticket.atualizado_em).toLocaleString()}`, 10, 90);
 
   doc.save(`chamado-${ticket.id}.pdf`);
+}
+
+function downloadAllJSON() {
+  if (!tickets.length) return alert("Não há chamados para exportar.");
+  const blob = new Blob([JSON.stringify(tickets, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "todos-chamados.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportAllPdf() {
+  if (!tickets.length) return alert("Não há chamados para exportar.");
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let y = 20;
+
+  tickets.forEach((t, index) => {
+    doc.setFontSize(14);
+    doc.text(`Chamado #${t.id}`, 10, y);
+    y += 8;
+    doc.setFontSize(12);
+    doc.text(`Título: ${t.titulo}`, 10, y); y += 6;
+    doc.text(`Descrição: ${t.descricao}`, 10, y); y += 6;
+    doc.text(`Solicitante: ${t.solicitante || "—"}`, 10, y); y += 6;
+    doc.text(`Prioridade: ${t.prioridade}`, 10, y); y += 6;
+    doc.text(`Status: ${t.status}`, 10, y); y += 6;
+    doc.text(`Criado em: ${new Date(t.criado_em).toLocaleString()}`, 10, y); y += 6;
+    doc.text(`Última atualização: ${new Date(t.atualizado_em).toLocaleString()}`, 10, y); y += 10;
+
+    if (y > 270) { // nova página se passar do limite
+      doc.addPage();
+      y = 20;
+    }
+  });
+
+  doc.save("todos-chamados.pdf");
 }
 
 
