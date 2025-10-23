@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Painel de Chamados</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --muted:#9aa6b2; --accent:#06b6d4;
+      --success:#10b981; --danger:#ef4444; --glass: rgba(255,255,255,0.03);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100vh; background:
+      linear-gradient(180deg,#061226 0%, #071428 60%), var(--bg);
+      color:#e6eef6;
+      padding:28px;
+    }
+    .container{max-width:1100px;margin:0 auto}
+    header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:20px}
+    h1{font-size:20px;margin:0}
+    .sub{color:var(--muted);font-size:13px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:12px;padding:16px;box-shadow: 0 6px 18px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03)}
+    .flex{display:flex}
+    .gap{gap:12px}
+    .col{display:flex;flex-direction:column}
+    /* Form */
+    .form-row{display:flex;gap:12px;align-items:center}
+    input[type="text"], textarea, select{
+      background:var(--card); border:1px solid rgba(255,255,255,0.03);
+      color:var(--muted); padding:10px;border-radius:8px;outline:none;
+      font-size:14px; width:100%;
+    }
+    textarea{min-height:80px; resize:vertical}
+    button{
+      background:var(--accent); border:none; color:#042027; padding:10px 14px;
+      border-radius:10px; cursor:pointer; font-weight:600;
+    }
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04); color:var(--muted)}
+    .tool-row{display:flex;gap:8px;align-items:center}
+    /* Tickets list */
+    .list{margin-top:16px;display:grid;gap:10px}
+    .ticket{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:12px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.02)}
+    .ticket .main{flex:1}
+    .ticket h3{margin:0;font-size:15px}
+    .ticket p{margin:6px 0;color:var(--muted);font-size:13px}
+    .meta{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:13px}
+    .badge{padding:6px 8px;border-radius:999px;font-weight:700;font-size:12px}
+    .badge.open{background:rgba(6,182,212,0.12);color:var(--accent);border:1px solid rgba(6,182,212,0.08)}
+    .badge.progress{background:rgba(255,193,7,0.08);color:#ffd166;border:1px solid rgba(255,193,7,0.06)}
+    .badge.closed{background:rgba(16,185,129,0.08);color:var(--success);border:1px solid rgba(16,185,129,0.06)}
+    .actions{display:flex;gap:8px}
+    .small{font-size:12px;padding:6px 8px;border-radius:8px}
+    .small.ghost{background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted)}
+    .danger{background:rgba(239,68,68,0.12);color:var(--danger);border:1px solid rgba(239,68,68,0.06)}
+    /* Filters area */
+    .filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .search{min-width:220px}
+    .empty{color:var(--muted);padding:20px;text-align:center;border-radius:8px}
+    /* Responsive */
+    @media (max-width:820px){
+      .form-row{flex-direction:column}
+      header{flex-direction:column;align-items:flex-start;gap:8px}
+      .ticket{flex-direction:column;align-items:stretch}
+    }
+  </style>
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h1>Painel de Chamados</h1>
+      <div class="sub">Crie, atualize e acompanhe chamados — persistência local e backend Neon/Postgres.</div>
+    </div>
+    <div class="tool-row">
+      <button id="exportBtn" class="ghost small" title="Exportar todos os chamados como JSON">Exportar JSON</button>
+      <button id="exportPdfBtn" class="ghost small" title="Exportar todos os chamados em PDF">Exportar PDF</button>
+      <label class="ghost small" style="cursor:pointer;display:inline-flex;align-items:center;">
+        <input type="file" id="importFile" accept="application/json" style="display:none" />
+        Importar JSON
+      </label>
+      <button id="clearBtn" class="danger small" title="Remover todos os chamados">Limpar tudo</button>
+    </div>
+  </header>
+
+  <section class="card">
+    <form id="ticketForm" class="col" onsubmit="return false;">
+      <div class="form-row gap">
+        <input type="text" id="titleInput" placeholder="Título do chamado" required />
+        <select id="prioritySelect" style="width:160px">
+          <option value="normal">Prioridade: Normal</option>
+          <option value="alta">Prioridade: Alta</option>
+          <option value="baixa">Prioridade: Baixa</option>
+        </select>
+      </div>
+      <div style="margin-top:10px" class="form-row">
+        <textarea id="descInput" placeholder="Descreva o problema..." required></textarea>
+      </div>
+      <div style="margin-top:10px" class="form-row" >
+        <div style="flex:1" class="meta">
+          <input id="ownerInput" type="text" placeholder="Solicitante (opcional)" style="padding:8px;border-radius:8px;background:var(--card);border:1px solid rgba(255,255,255,0.03);color:var(--muted);width:220px" />
+          <span class="sub" style="margin-left:6px">Pressione Criar para adicionar</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button id="createBtn" type="button">Criar Chamado</button>
+          <button id="updateBtn" type="button" class="ghost" style="display:none">Salvar</button>
+          <button id="cancelEditBtn" type="button" class="ghost" style="display:none">Cancelar</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <section style="margin-top:18px" class="card">
+    <div class="flex" style="justify-content:space-between;align-items:center">
+      <div class="filters">
+        <input id="searchInput" class="search" type="text" placeholder="Pesquisar por título, descrição ou solicitante..." />
+        <select id="statusFilter">
+          <option value="all">Todos os status</option>
+          <option value="Aberto">Aberto</option>
+          <option value="Em Progresso">Em Progresso</option>
+          <option value="Fechado">Fechado</option>
+        </select>
+        <select id="sortSelect">
+          <option value="newest">Mais recentes</option>
+          <option value="oldest">Mais antigos</option>
+          <option value="priority">Por prioridade</option>
+        </select>
+      </div>
+      <div class="sub">Total: <span id="totalCount">0</span></div>
+    </div>
+    <div id="list" class="list" aria-live="polite" style="margin-top:12px"></div>
+    <div id="empty" class="empty" style="display:none">Nenhum chamado encontrado — crie o primeiro acima 🎉</div>
+  </section>
+
+  <footer style="margin-top:14px;color:var(--muted);font-size:13px">
+    Dica: você pode exportar os dados e importar no Neon/Postgres depois de adaptar. Este é um protótipo de frontend com persistência local e backend.
+  </footer>
+</div>
+
+<script>
+  // ---------- config ----------
+  const STORAGE_KEY = "painel_chamados_v1";
+  const API_URL = "http://localhost:3000"; // substitua pelo seu backend Neon/Postgres
+  let tickets = [];
+  let editingId = null;
+
+  const el = id => document.getElementById(id);
+  const qs = (sel, ctx=document)=> ctx.querySelector(sel);
+  const qsa = (sel, ctx=document)=> Array.from(ctx.querySelectorAll(sel));
+  const formatDate = d=> new Date(d).toLocaleString();
+
+  const titleInput = el("titleInput");
+  const descInput = el("descInput");
+  const ownerInput = el("ownerInput");
+  const prioritySelect = el("prioritySelect");
+  const createBtn = el("createBtn");
+  const updateBtn = el("updateBtn");
+  const cancelEditBtn = el("cancelEditBtn");
+  const listEl = el("list");
+  const emptyEl = el("empty");
+  const searchInput = el("searchInput");
+  const statusFilter = el("statusFilter");
+  const sortSelect = el("sortSelect");
+  const totalCountEl = el("totalCount");
+  const exportBtn = el("exportBtn");
+  const exportPdfBtn = el("exportPdfBtn");
+  const importFile = el("importFile");
+  const clearBtn = el("clearBtn");
+
+  // ---------- helpers ----------
+  function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(tickets)); }
+  function load(){ tickets = JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]"); }
+  function priorityLabel(p){ if(p==="alta") return "Alta"; if(p==="baixa") return "Baixa"; return "Normal"; }
+  function statusBadgeClass(s){ if(s==="Aberto") return "badge open"; if(s==="Em Progresso") return "badge progress"; if(s==="Fechado") return "badge closed"; return "badge"; }
+  function escapeHtml(s){ if(!s && s!==0) return ""; return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;"); }
+  function debounce(fn, wait=200){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=> fn.apply(this,args),wait); }; }
+
+  // ---------- CRUD local ----------
+  function createTicket(ticket){
+    ticket.id = Date.now();
+    ticket.status = "Aberto";
+    ticket.criadoEm = new Date().toISOString();
+    ticket.atualizadoEm = new Date().toISOString();
+    tickets.unshift(ticket);
+    save(); render();
+  }
+  function updateTicket(id, changes){
+    const t = tickets.find(x=>x.id===id);
+    if(!t) return;
+    Object.assign(t, changes);
+    t.atualizadoEm = new Date().toISOString();
+    save(); render();
+  }
+  function deleteTicket(id){
+    tickets = tickets.filter(x=>x.id!==id);
+    save(); render();
+  }
+
+  // ---------- Backend Neon/Postgres ----------
+  async function loadTicketsDB(){ try { const res = await fetch(`${API_URL}/tickets`); tickets = await res.json(); render(); } catch(err){ console.error(err); } }
+  async function createTicketDB(ticket){ const res = await fetch(`${API_URL}/tickets`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(ticket)}); const data = await res.json(); tickets.unshift(data); render(); }
+  async function updateTicketDB(id, changes){ const res = await fetch(`${API_URL}/tickets/${id}`, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(changes)}); const data = await res.json(); const idx=tickets.findIndex(t=>t.id===id); tickets[idx]=data; render(); }
+  async function deleteTicketDB(id){ const res = await fetch(`${API_URL}/tickets/${id}`, {method:"DELETE"}); if(res.ok){ tickets=tickets.filter(t=>t.id!==id); render(); } }
+
+  // ---------- render ----------
+  function render(){
+    let list = tickets.slice();
+    const query = (searchInput.value||"").trim().toLowerCase();
+    const status = statusFilter.value;
+    if(query) list = list.filter(t=> (t.titulo||"").toLowerCase().includes(query) || (t.descricao||"").toLowerCase().includes(query) || (t.solicitante||"").toLowerCase().includes(query));
+    if(status!=="all") list=list.filter(t=>t.status===status);
+
+    const sortMode = sortSelect.value;
+    if(sortMode==="newest") list.sort((a,b)=>new Date(b.criadoEm)-new Date(a.criadoEm));
+    else if(sortMode==="oldest") list.sort((a,b)=>new Date(a.criadoEm)-new Date(b.criadoEm));
+    else if(sortMode==="priority"){ const order={ "alta":0,"normal":1,"baixa":2 }; list.sort((a,b)=>(order[a.prioridade]||1)-(order[b.prioridade]||1)); }
+
+    totalCountEl.textContent = list.length;
+    if(list.length===0){ listEl.innerHTML=""; emptyEl.style.display="block"; return; } else emptyEl.style.display="none";
+
+    listEl.innerHTML="";
+    for(const t of list){
+      const item=document.createElement("div");
+      item.className="ticket";
+      item.innerHTML=`
+        <div class="main">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
+            <div>
+              <h3>${escapeHtml(t.titulo)} <span style="font-weight:600;color:var(--muted);font-size:12px">• ${priorityLabel(t.prioridade)}</span></h3>
+              <div class="meta" style="margin-top:6px">
+                <div class="${statusBadgeClass(t.status)}">${t.status}</div>
+                <div>Solicitante: ${escapeHtml(t.solicitante||"—")}</div>
+                <div>Criado: ${formatDate(t.criadoEm)}</div>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="small ghost" data-action="edit" data-id="${t.id}" title="Editar">✏️</button>
+              <button class="small ghost" data-action="status" data-id="${t.id}" title="Alterar status">🔁</button>
+              <button class="small ghost" data-action="export" data-id="${t.id}" title="Exportar JSON">⬇️</button>
+              <button class="small ghost" data-action="pdf" data-id="${t.id}" title="Exportar PDF">📄</button>
+              <button class="small danger" data-action="delete" data-id="${t.id}" title="Excluir">🗑️</button>
+            </div>
+          </div>
+          <p>${escapeHtml(t.descricao)}</p>
+          <div class="meta" style="margin-top:6px;color:var(--muted);font-size:12px">Última atualização: ${formatDate(t.atualizadoEm)}</div>
+        </div>
+      `;
+      listEl.appendChild(item);
+    }
+
+    qsa("button[data-action]", listEl).forEach(btn=>{
+      btn.onclick=()=>{
+        const id=Number(btn.dataset.id); const action=btn.dataset.action;
+        if(action==="edit") startEdit(id);
+        if(action==="status") changeStatusDialog(id);
+        if(action==="delete"){ if(confirm("Excluir este chamado? Esta ação não pode ser desfeita.")) deleteTicket(id); }
+        if(action==="export"){ const t=tickets.find(x=>x.id===id); downloadJSON(t, `chamado-${id}.json`); }
+        if(action==="pdf"){ const t=tickets.find(x=>x.id===id); exportTicketPdf(t); }
+      };
+    });
+  }
+
+  // ---------- edit ----------
+  function startEdit(id){
+    const t=tickets.find(x=>x.id===id); if(!t) return alert("Chamado não encontrado");
+    editingId=id; titleInput.value=t.titulo; descInput.value=t.descricao; ownerInput.value=t.solicitante||""; prioritySelect.value=t.prioridade||"normal";
+    createBtn.style.display="none"; updateBtn.style.display="inline-block"; cancelEditBtn.style.display="inline-block";
+  }
+  function cancelEdit(){ editingId=null; titleInput.value=""; descInput.value=""; ownerInput.value=""; prioritySelect.value="normal"; createBtn.style.display="inline-block"; updateBtn.style.display="none"; cancelEditBtn.style.display="none"; }
+  function commitEdit(){ if(!editingId) return; const titulo=titleInput.value.trim(); const descricao=descInput.value.trim(); if(!titulo||!descricao) return alert("Título e descrição são obrigatórios."); updateTicket(editingId,{ titulo, descricao, solicitante: ownerInput.value.trim(), prioridade:prioritySelect.value }); cancelEdit(); }
+
+  function changeStatusDialog(id){ const t=tickets.find(x=>x.id===id); if(!t) return; const choice=prompt("Novo status (digite exatamente):\nOpções: Aberto, Em Progresso, Fechado", t.status); if(!choice) return; if(!["Aberto","Em Progresso","Fechado"].includes(choice)) return alert("Status inválido."); updateTicket(id,{status:choice}); }
+
+  // ---------- export/import/clear ----------
+  function downloadJSON(obj, filename="data.json"){ const blob=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
+
+  const { jsPDF } = window.jspdf;
+  function exportAllTicketsPdf(){ if(tickets.length===0) return alert("Nenhum chamado para exportar."); const doc=new jsPDF({unit:"pt",format:"a4"}); const margin=40; let y=margin; doc.setFontSize(16); doc.text("Relatório de Chamados",margin,y); y+=20; doc.setFontSize(10); tickets.forEach((t,i)=>{ const lines=[`#${i+1} • ${t.titulo}`,`Prioridade: ${priorityLabel(t.prioridade)} | Status: ${t.status}`,`Solicitante: ${t.solicitante||"—"}`,`Criado: ${formatDate(t.criadoEm)}`,`Atualizado: ${formatDate(t.atualizadoEm)}`,"",t.descricao,"------------------------------------------",""]; lines.forEach(line=>{ const split=doc.splitTextToSize(line,520); split.forEach(s=>{ if(y>770){doc.addPage();y=margin;} doc.text(s,margin,y); y+=14; }); }); }); doc.save("chamados.pdf"); }
+
+  function exportTicketPdf(t){ const doc=new jsPDF({unit:"pt"}); let y=40; doc.setFontSize(14); doc.text(`Chamado: ${t.titulo}`,40,y); y+=20; doc.setFontSize(10); const lines=[`Prioridade: ${priorityLabel(t.prioridade)}`,`Status: ${t.status}`,`Solicitante: ${t.solicitante||"—"}`,`Criado em: ${formatDate(t.criadoEm)}`,`Atualizado em: ${formatDate(t.atualizadoEm)}`,"","Descrição:",t.descricao]; lines.forEach(line=>{ const wrapped=doc.splitTextToSize(line,520); wrapped.forEach(l=>{ doc.text(l,40,y); y+=14; }); }); doc.save(`chamado-${t.id}.pdf`); }
+
+  // ---------- events ----------
+  createBtn.onclick=()=>{ const titulo=titleInput.value.trim(); const descricao=descInput.value.trim(); if(!titulo||!descricao) return alert("Preencha título e descrição."); createTicket({ titulo, descricao, solicitante: ownerInput.value.trim(), prioridade:prioritySelect.value }); titleInput.value=""; descInput.value=""; ownerInput.value=""; prioritySelect.value="normal"; titleInput.focus(); };
+  updateBtn.onclick=()=>commitEdit();
+  cancelEditBtn.onclick=()=>cancelEdit();
+  searchInput.oninput=debounce(()=>render(),250);
+  statusFilter.onchange=()=>render();
+  sortSelect.onchange=()=>render();
+  exportBtn.onclick=()=>downloadJSON(tickets,"chamados-export.json");
+  exportPdfBtn.onclick=()=>exportAllTicketsPdf();
+
+  importFile.onchange=async (e)=>{
+    const f=e.target.files&&e.target.files[0]; if(!f) return;
+    try{
+      const txt=await f.text(); const data=JSON.parse(txt);
+      if(!Array.isArray(data)){ if(data && typeof data==="object") tickets.unshift(data); else throw new Error("JSON inválido"); } else tickets=data.concat(tickets);
+      save(); render(); alert("Importação concluída.");
+    }catch(err){ console.error(err); alert("Falha ao importar: arquivo JSON inválido."); } finally { e.target.value=""; }
+  };
+
+  clearBtn.onclick=()=>{ if(!confirm("Remover TODOS os chamados salvos localmente?")) return; tickets=[]; save(); render(); };
+
+  document.addEventListener("keydown",(e)=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){ if(editingId) commitEdit(); else createBtn.click(); } if(e.key==="Escape") cancelEdit(); });
+
+  // ---------- inicializa ----------
+  load();
+  render();
+</script>
+</body>
+</html>
