@@ -204,7 +204,7 @@ async function deleteTicketDB(id){
 }
 
 // ---------- render ----------
-function render() {
+function render(){
   let list = tickets.slice();
   const query = (searchInput.value||"").trim().toLowerCase();
   const status = statusFilter.value;
@@ -229,17 +229,14 @@ function render() {
           <div>
             <h3>${escapeHtml(t.titulo)} <span style="font-weight:600;color:var(--muted);font-size:12px">• ${priorityLabel(t.prioridade)}</span></h3>
             <div class="meta" style="margin-top:6px">
-              <select style="border-radius:8px; padding:2px 6px; font-size:12px; color:var(--muted);" onchange="updateTicketDB(${t.id}, { status: this.value })">
-                <option value="Aberto" ${t.status==='Aberto'?'selected':''}>Aberto</option>
-                <option value="Em Progresso" ${t.status==='Em Progresso'?'selected':''}>Em Progresso</option>
-                <option value="Fechado" ${t.status==='Fechado'?'selected':''}>Fechado</option>
-              </select>
+              <div class="${statusBadgeClass(t.status)}">${t.status}</div>
               <div>Solicitante: ${escapeHtml(t.solicitante||"—")}</div>
               <div>Criado: ${formatDate(t.criado_em)}</div>
             </div>
           </div>
           <div class="actions">
             <button class="small ghost" data-action="edit" data-id="${t.id}" title="Editar">✏️</button>
+            <button class="small ghost" data-action="status" data-id="${t.id}" title="Alterar status">🔁</button>
             <button class="small ghost" data-action="export" data-id="${t.id}" title="Exportar JSON">⬇️</button>
             <button class="small ghost" data-action="pdf" data-id="${t.id}" title="Exportar PDF">📄</button>
             <button class="small danger" data-action="delete" data-id="${t.id}" title="Excluir">🗑️</button>
@@ -252,18 +249,30 @@ function render() {
     listEl.appendChild(item);
   }
 
+  // --- Função global para alterar status ---
+function changeStatusDialog(id) {
+  const t = tickets.find(x => x.id == id);
+  if(!t) return alert("Chamado não encontrado");
+
+  const newStatus = prompt("Novo status (Aberto, Em Progresso, Fechado):", t.status);
+  if(newStatus && ["Aberto","Em Progresso","Fechado"].includes(newStatus)) {
+    updateTicketDB(id, { status: newStatus }); // salva no backend
+  } else if(newStatus) {
+    alert("Status inválido!");
+  }
+}
 
   qsa("button[data-action]", listEl).forEach(btn=>{
-    btn.onclick=()=>{
-      const id=Number(btn.dataset.id); 
-      const action=btn.dataset.action;
-      if(action==="edit") startEdit(id);
-      if(action==="status") changeStatusDialog(id);
-      if(action==="delete"){ if(confirm("Excluir este chamado? Esta ação não pode ser desfeita.")) deleteTicketDB(id); }
-      if(action==="export"){ const t=tickets.find(x=>x.id===id); downloadJSON(t, `chamado-${id}.json`); }
-      if(action==="pdf"){ const t=tickets.find(x=>x.id===id); exportTicketPdf(t); }
-    };
-  });
+  btn.onclick=()=>{
+    const id=Number(btn.dataset.id); 
+    const action=btn.dataset.action;
+    if(action==="edit") startEdit(id);
+    if(action==="status") changeStatusDialog(id); // chama função global
+    if(action==="delete"){ if(confirm("Excluir este chamado? Esta ação não pode ser desfeita.")) deleteTicketDB(id); }
+    if(action==="export"){ const t=tickets.find(x=>x.id===id); downloadJSON(t, `chamado-${id}.json`); }
+    if(action==="pdf"){ const t=tickets.find(x=>x.id===id); exportTicketPdf(t); }
+  };
+});
 }
 
 // ---------- edit ----------
