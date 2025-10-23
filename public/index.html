@@ -141,183 +141,162 @@
 </div>
 
 <script>
-  // ---------- config ----------
-  const STORAGE_KEY = "painel_chamados_v1";
-  const API_URL = "https://chamados-opal-iota.vercel.app/api/tickets"; // substitua pelo seu backend Neon/Postgres
-  let tickets = [];
-  let editingId = null;
+const API_URL = "https://chamados-opal-iota.vercel.app/api/tickets"; // coloque a URL do Vercel
 
-  const el = id => document.getElementById(id);
-  const qs = (sel, ctx=document)=> ctx.querySelector(sel);
-  const qsa = (sel, ctx=document)=> Array.from(ctx.querySelectorAll(sel));
-  const formatDate = d=> new Date(d).toLocaleString();
+let tickets = [];
+let editingId = null;
 
-  const titleInput = el("titleInput");
-  const descInput = el("descInput");
-  const ownerInput = el("ownerInput");
-  const prioritySelect = el("prioritySelect");
-  const createBtn = el("createBtn");
-  const updateBtn = el("updateBtn");
-  const cancelEditBtn = el("cancelEditBtn");
-  const listEl = el("list");
-  const emptyEl = el("empty");
-  const searchInput = el("searchInput");
-  const statusFilter = el("statusFilter");
-  const sortSelect = el("sortSelect");
-  const totalCountEl = el("totalCount");
-  const exportBtn = el("exportBtn");
-  const exportPdfBtn = el("exportPdfBtn");
-  const importFile = el("importFile");
-  const clearBtn = el("clearBtn");
+// elementos
+const el = id => document.getElementById(id);
+const qs = (sel, ctx=document)=> ctx.querySelector(sel);
+const qsa = (sel, ctx=document)=> Array.from(ctx.querySelectorAll(sel));
+const formatDate = d=> new Date(d).toLocaleString();
 
-  // ---------- helpers ----------
-  function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(tickets)); }
-  function load(){ tickets = JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]"); }
-  function priorityLabel(p){ if(p==="alta") return "Alta"; if(p==="baixa") return "Baixa"; return "Normal"; }
-  function statusBadgeClass(s){ if(s==="Aberto") return "badge open"; if(s==="Em Progresso") return "badge progress"; if(s==="Fechado") return "badge closed"; return "badge"; }
-  function escapeHtml(s){ if(!s && s!==0) return ""; return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;"); }
-  function debounce(fn, wait=200){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=> fn.apply(this,args),wait); }; }
+const titleInput = el("titleInput");
+const descInput = el("descInput");
+const ownerInput = el("ownerInput");
+const prioritySelect = el("prioritySelect");
+const createBtn = el("createBtn");
+const updateBtn = el("updateBtn");
+const cancelEditBtn = el("cancelEditBtn");
+const listEl = el("list");
+const emptyEl = el("empty");
+const searchInput = el("searchInput");
+const statusFilter = el("statusFilter");
+const sortSelect = el("sortSelect");
+const totalCountEl = el("totalCount");
+const exportBtn = el("exportBtn");
+const exportPdfBtn = el("exportPdfBtn");
+const importFile = el("importFile");
+const clearBtn = el("clearBtn");
 
-  // ---------- CRUD local ----------
-  createBtn.onclick = () => {
-  const titulo = titleInput.value.trim();
-  const descricao = descInput.value.trim();
-  if (!titulo || !descricao) return alert("Preencha título e descrição.");
-  
-  // Antes:
-  // createTicket({ titulo, descricao, solicitante: ownerInput.value.trim(), prioridade: prioritySelect.value });
-  
-  // Agora:
-  createTicketDB({ titulo, descricao, solicitante: ownerInput.value.trim(), prioridade: prioritySelect.value });
+// helpers
+function priorityLabel(p){ if(p==="alta") return "Alta"; if(p==="baixa") return "Baixa"; return "Normal"; }
+function statusBadgeClass(s){ if(s==="Aberto") return "badge open"; if(s==="Em Progresso") return "badge progress"; if(s==="Fechado") return "badge closed"; return "badge"; }
+function escapeHtml(s){ if(!s && s!==0) return ""; return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;"); }
+function debounce(fn, wait=200){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=> fn.apply(this,args),wait); }; }
 
-  titleInput.value = "";
-  descInput.value = "";
-  ownerInput.value = "";
-  prioritySelect.value = "normal";
-  titleInput.focus();
-};
-  // ---------- Backend Neon/Postgres ----------
-  async function loadTicketsDB(){ try { const res = await fetch(`${API_URL}/tickets`); tickets = await res.json(); render(); } catch(err){ console.error(err); } }
-  async function createTicketDB(ticket){ const res = await fetch(`${API_URL}/tickets`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(ticket)}); const data = await res.json(); tickets.unshift(data); render(); }
-  async function updateTicketDB(id, changes){ const res = await fetch(`${API_URL}/tickets/${id}`, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(changes)}); const data = await res.json(); const idx=tickets.findIndex(t=>t.id===id); tickets[idx]=data; render(); }
-  async function deleteTicketDB(id){ const res = await fetch(`${API_URL}/tickets/${id}`, {method:"DELETE"}); if(res.ok){ tickets=tickets.filter(t=>t.id!==id); render(); } }
+// ---------- Backend ----------
+async function loadTicketsDB(){ 
+  try { 
+    const res = await fetch(API_URL); 
+    tickets = await res.json(); 
+    render(); 
+  } catch(err){ console.error(err); alert("Erro ao carregar tickets do banco"); } 
+}
 
-  // ---------- render ----------
-  function render(){
-    let list = tickets.slice();
-    const query = (searchInput.value||"").trim().toLowerCase();
-    const status = statusFilter.value;
-    if(query) list = list.filter(t=> (t.titulo||"").toLowerCase().includes(query) || (t.descricao||"").toLowerCase().includes(query) || (t.solicitante||"").toLowerCase().includes(query));
-    if(status!=="all") list=list.filter(t=>t.status===status);
+async function createTicketDB(ticket){ 
+  const res = await fetch(API_URL, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(ticket)});
+  const data = await res.json();
+  tickets.unshift(data);
+  render();
+}
 
-    const sortMode = sortSelect.value;
-    if(sortMode==="newest") list.sort((a,b)=>new Date(b.criadoEm)-new Date(a.criadoEm));
-    else if(sortMode==="oldest") list.sort((a,b)=>new Date(a.criadoEm)-new Date(b.criadoEm));
-    else if(sortMode==="priority"){ const order={ "alta":0,"normal":1,"baixa":2 }; list.sort((a,b)=>(order[a.prioridade]||1)-(order[b.prioridade]||1)); }
+async function updateTicketDB(id, changes){ 
+  const res = await fetch(`${API_URL}?id=${id}`, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(changes)});
+  const data = await res.json();
+  const idx=tickets.findIndex(t=>t.id==id);
+  tickets[idx]=data;
+  render();
+}
 
-    totalCountEl.textContent = list.length;
-    if(list.length===0){ listEl.innerHTML=""; emptyEl.style.display="block"; return; } else emptyEl.style.display="none";
+async function deleteTicketDB(id){ 
+  const res = await fetch(`${API_URL}?id=${id}`, {method:"DELETE"});
+  if(res.ok){ tickets=tickets.filter(t=>t.id!==id); render(); }
+}
 
-    listEl.innerHTML="";
-    for(const t of list){
-      const item=document.createElement("div");
-      item.className="ticket";
-      item.innerHTML=`
-        <div class="main">
-          <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
-            <div>
-              <h3>${escapeHtml(t.titulo)} <span style="font-weight:600;color:var(--muted);font-size:12px">• ${priorityLabel(t.prioridade)}</span></h3>
-              <div class="meta" style="margin-top:6px">
-                <div class="${statusBadgeClass(t.status)}">${t.status}</div>
-                <div>Solicitante: ${escapeHtml(t.solicitante||"—")}</div>
-                <div>Criado: ${formatDate(t.criadoEm)}</div>
-              </div>
-            </div>
-            <div class="actions">
-              <button class="small ghost" data-action="edit" data-id="${t.id}" title="Editar">✏️</button>
-              <button class="small ghost" data-action="status" data-id="${t.id}" title="Alterar status">🔁</button>
-              <button class="small ghost" data-action="export" data-id="${t.id}" title="Exportar JSON">⬇️</button>
-              <button class="small ghost" data-action="pdf" data-id="${t.id}" title="Exportar PDF">📄</button>
-              <button class="small danger" data-action="delete" data-id="${t.id}" title="Excluir">🗑️</button>
+// ---------- render ----------
+function render(){
+  let list = tickets.slice();
+  const query = (searchInput.value||"").trim().toLowerCase();
+  const status = statusFilter.value;
+  if(query) list = list.filter(t=> (t.titulo||"").toLowerCase().includes(query) || (t.descricao||"").toLowerCase().includes(query) || (t.solicitante||"").toLowerCase().includes(query));
+  if(status!=="all") list=list.filter(t=>t.status===status);
+
+  const sortMode = sortSelect.value;
+  if(sortMode==="newest") list.sort((a,b)=>new Date(b.criado_em)-new Date(a.criado_em));
+  else if(sortMode==="oldest") list.sort((a,b)=>new Date(a.criado_em)-new Date(b.criado_em));
+  else if(sortMode==="priority"){ const order={ "alta":0,"normal":1,"baixa":2 }; list.sort((a,b)=>(order[a.prioridade]||1)-(order[b.prioridade]||1)); }
+
+  totalCountEl.textContent = list.length;
+  if(list.length===0){ listEl.innerHTML=""; emptyEl.style.display="block"; return; } else emptyEl.style.display="none";
+
+  listEl.innerHTML="";
+  for(const t of list){
+    const item=document.createElement("div");
+    item.className="ticket";
+    item.innerHTML=`
+      <div class="main">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
+          <div>
+            <h3>${escapeHtml(t.titulo)} <span style="font-weight:600;color:var(--muted);font-size:12px">• ${priorityLabel(t.prioridade)}</span></h3>
+            <div class="meta" style="margin-top:6px">
+              <div class="${statusBadgeClass(t.status)}">${t.status}</div>
+              <div>Solicitante: ${escapeHtml(t.solicitante||"—")}</div>
+              <div>Criado: ${formatDate(t.criado_em)}</div>
             </div>
           </div>
-          <p>${escapeHtml(t.descricao)}</p>
-          <div class="meta" style="margin-top:6px;color:var(--muted);font-size:12px">Última atualização: ${formatDate(t.atualizadoEm)}</div>
+          <div class="actions">
+            <button class="small ghost" data-action="edit" data-id="${t.id}" title="Editar">✏️</button>
+            <button class="small ghost" data-action="status" data-id="${t.id}" title="Alterar status">🔁</button>
+            <button class="small ghost" data-action="export" data-id="${t.id}" title="Exportar JSON">⬇️</button>
+            <button class="small ghost" data-action="pdf" data-id="${t.id}" title="Exportar PDF">📄</button>
+            <button class="small danger" data-action="delete" data-id="${t.id}" title="Excluir">🗑️</button>
+          </div>
         </div>
-      `;
-      listEl.appendChild(item);
-    }
-
-    qsa("button[data-action]", listEl).forEach(btn=>{
-      btn.onclick=()=>{
-        const id=Number(btn.dataset.id); const action=btn.dataset.action;
-        if(action==="edit") startEdit(id);
-        if(action==="status") changeStatusDialog(id);
-        if (confirm("Excluir este chamado? Esta ação não pode ser desfeita.")) deleteTicketDB(id);
-        if(action==="export"){ const t=tickets.find(x=>x.id===id); downloadJSON(t, `chamado-${id}.json`); }
-        if(action==="pdf"){ const t=tickets.find(x=>x.id===id); exportTicketPdf(t); }
-      };
-    });
+        <p>${escapeHtml(t.descricao)}</p>
+        <div class="meta" style="margin-top:6px;color:var(--muted);font-size:12px">Última atualização: ${formatDate(t.atualizado_em)}</div>
+      </div>
+    `;
+    listEl.appendChild(item);
   }
 
-  // ---------- edit ----------
-  function startEdit(id){
-    const t=tickets.find(x=>x.id===id); if(!t) return alert("Chamado não encontrado");
-    editingId=id; titleInput.value=t.titulo; descInput.value=t.descricao; ownerInput.value=t.solicitante||""; prioritySelect.value=t.prioridade||"normal";
-    createBtn.style.display="none"; updateBtn.style.display="inline-block"; cancelEditBtn.style.display="inline-block";
-  }
-  function cancelEdit(){ editingId=null; titleInput.value=""; descInput.value=""; ownerInput.value=""; prioritySelect.value="normal"; createBtn.style.display="inline-block"; updateBtn.style.display="none"; cancelEditBtn.style.display="none"; }
-  function commitEdit() {
-  if (!editingId) return;
+  qsa("button[data-action]", listEl).forEach(btn=>{
+    btn.onclick=()=>{
+      const id=Number(btn.dataset.id); 
+      const action=btn.dataset.action;
+      if(action==="edit") startEdit(id);
+      if(action==="status") changeStatusDialog(id);
+      if(action==="delete"){ if(confirm("Excluir este chamado? Esta ação não pode ser desfeita.")) deleteTicketDB(id); }
+      if(action==="export"){ const t=tickets.find(x=>x.id===id); downloadJSON(t, `chamado-${id}.json`); }
+      if(action==="pdf"){ const t=tickets.find(x=>x.id===id); exportTicketPdf(t); }
+    };
+  });
+}
+
+// ---------- edit ----------
+function startEdit(id){
+  const t=tickets.find(x=>x.id==id); if(!t) return alert("Chamado não encontrado");
+  editingId=id; titleInput.value=t.titulo; descInput.value=t.descricao; ownerInput.value=t.solicitante||""; prioritySelect.value=t.prioridade||"normal";
+  createBtn.style.display="none"; updateBtn.style.display="inline-block"; cancelEditBtn.style.display="inline-block";
+}
+function cancelEdit(){ editingId=null; titleInput.value=""; descInput.value=""; ownerInput.value=""; prioritySelect.value="normal"; createBtn.style.display="inline-block"; updateBtn.style.display="none"; cancelEditBtn.style.display="none"; }
+function commitEdit() {
+  if(!editingId) return;
   const titulo = titleInput.value.trim();
   const descricao = descInput.value.trim();
-  if (!titulo || !descricao) return alert("Título e descrição são obrigatórios.");
-
-  // Antes:
-  // updateTicket(editingId, { titulo, descricao, solicitante: ownerInput.value.trim(), prioridade: prioritySelect.value });
-
-  // Agora:
+  if(!titulo||!descricao) return alert("Título e descrição são obrigatórios.");
   updateTicketDB(editingId, { titulo, descricao, solicitante: ownerInput.value.trim(), prioridade: prioritySelect.value });
-
   cancelEdit();
 }
-  function changeStatusDialog(id){ const t=tickets.find(x=>x.id===id); if(!t) return; const choice=prompt("Novo status (digite exatamente):\nOpções: Aberto, Em Progresso, Fechado", t.status); if(!choice) return; if(!["Aberto","Em Progresso","Fechado"].includes(choice)) return alert("Status inválido."); updateTicket(id,{status:choice}); }
 
-  // ---------- export/import/clear ----------
-  function downloadJSON(obj, filename="data.json"){ const blob=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
+// ---------- events ----------
+createBtn.onclick = async () => {
+  const titulo = titleInput.value.trim();
+  const descricao = descInput.value.trim();
+  if(!titulo||!descricao) return alert("Preencha título e descrição.");
+  await createTicketDB({ titulo, descricao, solicitante: ownerInput.value.trim(), prioridade: prioritySelect.value });
+  titleInput.value = ""; descInput.value = ""; ownerInput.value = ""; prioritySelect.value = "normal"; titleInput.focus();
+};
+updateBtn.onclick = () => commitEdit();
+cancelEditBtn.onclick = () => cancelEdit();
+searchInput.oninput = debounce(()=>render(),250);
+statusFilter.onchange = ()=>render();
+sortSelect.onchange = ()=>render();
 
-  const { jsPDF } = window.jspdf;
-  function exportAllTicketsPdf(){ if(tickets.length===0) return alert("Nenhum chamado para exportar."); const doc=new jsPDF({unit:"pt",format:"a4"}); const margin=40; let y=margin; doc.setFontSize(16); doc.text("Relatório de Chamados",margin,y); y+=20; doc.setFontSize(10); tickets.forEach((t,i)=>{ const lines=[`#${i+1} • ${t.titulo}`,`Prioridade: ${priorityLabel(t.prioridade)} | Status: ${t.status}`,`Solicitante: ${t.solicitante||"—"}`,`Criado: ${formatDate(t.criadoEm)}`,`Atualizado: ${formatDate(t.atualizadoEm)}`,"",t.descricao,"------------------------------------------",""]; lines.forEach(line=>{ const split=doc.splitTextToSize(line,520); split.forEach(s=>{ if(y>770){doc.addPage();y=margin;} doc.text(s,margin,y); y+=14; }); }); }); doc.save("chamados.pdf"); }
-
-  function exportTicketPdf(t){ const doc=new jsPDF({unit:"pt"}); let y=40; doc.setFontSize(14); doc.text(`Chamado: ${t.titulo}`,40,y); y+=20; doc.setFontSize(10); const lines=[`Prioridade: ${priorityLabel(t.prioridade)}`,`Status: ${t.status}`,`Solicitante: ${t.solicitante||"—"}`,`Criado em: ${formatDate(t.criadoEm)}`,`Atualizado em: ${formatDate(t.atualizadoEm)}`,"","Descrição:",t.descricao]; lines.forEach(line=>{ const wrapped=doc.splitTextToSize(line,520); wrapped.forEach(l=>{ doc.text(l,40,y); y+=14; }); }); doc.save(`chamado-${t.id}.pdf`); }
-
-  // ---------- events ----------
-  createBtn.onclick=()=>{ const titulo=titleInput.value.trim(); const descricao=descInput.value.trim(); if(!titulo||!descricao) return alert("Preencha título e descrição."); createTicket({ titulo, descricao, solicitante: ownerInput.value.trim(), prioridade:prioritySelect.value }); titleInput.value=""; descInput.value=""; ownerInput.value=""; prioritySelect.value="normal"; titleInput.focus(); };
-  updateBtn.onclick=()=>commitEdit();
-  cancelEditBtn.onclick=()=>cancelEdit();
-  searchInput.oninput=debounce(()=>render(),250);
-  statusFilter.onchange=()=>render();
-  sortSelect.onchange=()=>render();
-  exportBtn.onclick=()=>downloadJSON(tickets,"chamados-export.json");
-  exportPdfBtn.onclick=()=>exportAllTicketsPdf();
-
-  importFile.onchange=async (e)=>{
-    const f=e.target.files&&e.target.files[0]; if(!f) return;
-    try{
-      const txt=await f.text(); const data=JSON.parse(txt);
-      if(!Array.isArray(data)){ if(data && typeof data==="object") tickets.unshift(data); else throw new Error("JSON inválido"); } else tickets=data.concat(tickets);
-      save(); render(); alert("Importação concluída.");
-    }catch(err){ console.error(err); alert("Falha ao importar: arquivo JSON inválido."); } finally { e.target.value=""; }
-  };
-
-  clearBtn.onclick=()=>{ if(!confirm("Remover TODOS os chamados salvos localmente?")) return; tickets=[]; save(); render(); };
-
-  document.addEventListener("keydown",(e)=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){ if(editingId) commitEdit(); else createBtn.click(); } if(e.key==="Escape") cancelEdit(); });
-
-  // ---------- inicializa ----------
-  window.addEventListener("load", () => {
-  loadTicketsDB(); // carrega do backend
-});
+// ---------- inicializa ----------
+window.addEventListener("load", () => loadTicketsDB());
 </script>
+
 </body>
 </html>
