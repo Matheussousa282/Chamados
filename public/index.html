@@ -249,6 +249,19 @@ function render(){
     listEl.appendChild(item);
   }
 
+  function changeStatusDialog(id) {
+  const t = tickets.find(x => x.id == id);
+  if(!t) return alert("Chamado não encontrado");
+
+  const newStatus = prompt("Novo status (Aberto, Em Progresso, Fechado):", t.status);
+  if(newStatus && ["Aberto","Em Progresso","Fechado"].includes(newStatus)) {
+    updateTicketDB(id, { status: newStatus });
+  } else if(newStatus) {
+    alert("Status inválido!");
+  }
+}
+
+
   qsa("button[data-action]", listEl).forEach(btn=>{
     btn.onclick=()=>{
       const id=Number(btn.dataset.id); 
