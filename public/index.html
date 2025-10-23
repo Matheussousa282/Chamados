@@ -256,7 +256,13 @@ function changeStatusDialog(id) {
 
   const newStatus = prompt("Novo status (Aberto, Em Progresso, Fechado):", t.status);
   if(newStatus && ["Aberto","Em Progresso","Fechado"].includes(newStatus)) {
-    updateTicketDB(id, { status: newStatus }); // salva no backend
+    updateTicketDB(id, { 
+      titulo: t.titulo, 
+      descricao: t.descricao, 
+      solicitante: t.solicitante, 
+      prioridade: t.prioridade, 
+      status: newStatus 
+    });
   } else if(newStatus) {
     alert("Status inválido!");
   }
