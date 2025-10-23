@@ -3,7 +3,7 @@ const { Pool } = pkg;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL_NEON,
-  ssl: { rejectUnauthorized: false }, // essencial para Neon
+  ssl: { rejectUnauthorized: false } // essencial para Neon
 });
 
 export default async function handler(req, res) {
@@ -17,6 +17,8 @@ export default async function handler(req, res) {
 
     if (method === "POST") {
       const { titulo, descricao, solicitante, prioridade } = req.body;
+      if (!titulo || !descricao) return res.status(400).json({ error: "Título e descrição são obrigatórios." });
+
       const now = new Date().toISOString();
       const { rows } = await pool.query(
         `INSERT INTO tickets (titulo, descricao, solicitante, prioridade, status, criado_em, atualizado_em)
@@ -29,6 +31,8 @@ export default async function handler(req, res) {
     if (method === "PUT") {
       const { id } = req.query;
       const { titulo, descricao, solicitante, prioridade, status } = req.body;
+      if (!id) return res.status(400).json({ error: "ID do ticket é obrigatório." });
+
       const now = new Date().toISOString();
       const { rows } = await pool.query(
         `UPDATE tickets
@@ -36,11 +40,15 @@ export default async function handler(req, res) {
          WHERE id=$7 RETURNING *`,
         [titulo, descricao, solicitante || null, prioridade || 'normal', status, now, id]
       );
+
+      if (rows.length === 0) return res.status(404).json({ error: "Chamado não encontrado." });
       return res.status(200).json(rows[0]);
     }
 
     if (method === "DELETE") {
       const { id } = req.query;
+      if (!id) return res.status(400).json({ error: "ID do ticket é obrigatório." });
+
       await pool.query(`DELETE FROM tickets WHERE id=$1`, [id]);
       return res.status(204).end();
     }
@@ -49,7 +57,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: `Method ${method} Not Allowed` });
 
   } catch (err) {
-    console.error("API Error:", err.message);
-    return res.status(500).json({ error: err.message });
+    console.error("API Error:", err);
+    return res.status(500).json({ error: "Erro interno do servidor." });
   }
 }
