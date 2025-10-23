@@ -203,6 +203,38 @@ async function deleteTicketDB(id){
   if(res.ok){ tickets=tickets.filter(t=>t.id!==id); render(); }
 }
 
+function downloadJSON(obj, filename = "data.json") {
+  if (!obj) return;
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportTicketPdf(ticket) {
+  if (!ticket) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.setFontSize(16);
+  doc.text(`Chamado #${ticket.id}`, 10, 20);
+
+  doc.setFontSize(12);
+  doc.text(`Título: ${ticket.titulo}`, 10, 30);
+  doc.text(`Descrição: ${ticket.descricao}`, 10, 40);
+  doc.text(`Solicitante: ${ticket.solicitante || "—"}`, 10, 50);
+  doc.text(`Prioridade: ${ticket.prioridade}`, 10, 60);
+  doc.text(`Status: ${ticket.status}`, 10, 70);
+  doc.text(`Criado em: ${new Date(ticket.criado_em).toLocaleString()}`, 10, 80);
+  doc.text(`Última atualização: ${new Date(ticket.atualizado_em).toLocaleString()}`, 10, 90);
+
+  doc.save(`chamado-${ticket.id}.pdf`);
+}
+
+
 // ---------- render ----------
 function render(){
   let list = tickets.slice();
