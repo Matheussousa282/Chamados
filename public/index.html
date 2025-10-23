@@ -179,26 +179,23 @@
   function debounce(fn, wait=200){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=> fn.apply(this,args),wait); }; }
 
   // ---------- CRUD local ----------
-  function createTicket(ticket){
-    ticket.id = Date.now();
-    ticket.status = "Aberto";
-    ticket.criadoEm = new Date().toISOString();
-    ticket.atualizadoEm = new Date().toISOString();
-    tickets.unshift(ticket);
-    save(); render();
-  }
-  function updateTicket(id, changes){
-    const t = tickets.find(x=>x.id===id);
-    if(!t) return;
-    Object.assign(t, changes);
-    t.atualizadoEm = new Date().toISOString();
-    save(); render();
-  }
-  function deleteTicket(id){
-    tickets = tickets.filter(x=>x.id!==id);
-    save(); render();
-  }
+  createBtn.onclick = () => {
+  const titulo = titleInput.value.trim();
+  const descricao = descInput.value.trim();
+  if (!titulo || !descricao) return alert("Preencha título e descrição.");
+  
+  // Antes:
+  // createTicket({ titulo, descricao, solicitante: ownerInput.value.trim(), prioridade: prioritySelect.value });
+  
+  // Agora:
+  createTicketDB({ titulo, descricao, solicitante: ownerInput.value.trim(), prioridade: prioritySelect.value });
 
+  titleInput.value = "";
+  descInput.value = "";
+  ownerInput.value = "";
+  prioritySelect.value = "normal";
+  titleInput.focus();
+};
   // ---------- Backend Neon/Postgres ----------
   async function loadTicketsDB(){ try { const res = await fetch(`${API_URL}/tickets`); tickets = await res.json(); render(); } catch(err){ console.error(err); } }
   async function createTicketDB(ticket){ const res = await fetch(`${API_URL}/tickets`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(ticket)}); const data = await res.json(); tickets.unshift(data); render(); }
@@ -256,7 +253,7 @@
         const id=Number(btn.dataset.id); const action=btn.dataset.action;
         if(action==="edit") startEdit(id);
         if(action==="status") changeStatusDialog(id);
-        if(action==="delete"){ if(confirm("Excluir este chamado? Esta ação não pode ser desfeita.")) deleteTicket(id); }
+        if (confirm("Excluir este chamado? Esta ação não pode ser desfeita.")) deleteTicketDB(id);
         if(action==="export"){ const t=tickets.find(x=>x.id===id); downloadJSON(t, `chamado-${id}.json`); }
         if(action==="pdf"){ const t=tickets.find(x=>x.id===id); exportTicketPdf(t); }
       };
@@ -270,8 +267,20 @@
     createBtn.style.display="none"; updateBtn.style.display="inline-block"; cancelEditBtn.style.display="inline-block";
   }
   function cancelEdit(){ editingId=null; titleInput.value=""; descInput.value=""; ownerInput.value=""; prioritySelect.value="normal"; createBtn.style.display="inline-block"; updateBtn.style.display="none"; cancelEditBtn.style.display="none"; }
-  function commitEdit(){ if(!editingId) return; const titulo=titleInput.value.trim(); const descricao=descInput.value.trim(); if(!titulo||!descricao) return alert("Título e descrição são obrigatórios."); updateTicket(editingId,{ titulo, descricao, solicitante: ownerInput.value.trim(), prioridade:prioritySelect.value }); cancelEdit(); }
+  function commitEdit() {
+  if (!editingId) return;
+  const titulo = titleInput.value.trim();
+  const descricao = descInput.value.trim();
+  if (!titulo || !descricao) return alert("Título e descrição são obrigatórios.");
 
+  // Antes:
+  // updateTicket(editingId, { titulo, descricao, solicitante: ownerInput.value.trim(), prioridade: prioritySelect.value });
+
+  // Agora:
+  updateTicketDB(editingId, { titulo, descricao, solicitante: ownerInput.value.trim(), prioridade: prioritySelect.value });
+
+  cancelEdit();
+}
   function changeStatusDialog(id){ const t=tickets.find(x=>x.id===id); if(!t) return; const choice=prompt("Novo status (digite exatamente):\nOpções: Aberto, Em Progresso, Fechado", t.status); if(!choice) return; if(!["Aberto","Em Progresso","Fechado"].includes(choice)) return alert("Status inválido."); updateTicket(id,{status:choice}); }
 
   // ---------- export/import/clear ----------
@@ -306,8 +315,9 @@
   document.addEventListener("keydown",(e)=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){ if(editingId) commitEdit(); else createBtn.click(); } if(e.key==="Escape") cancelEdit(); });
 
   // ---------- inicializa ----------
-  load();
-  render();
+  window.addEventListener("load", () => {
+  loadTicketsDB(); // carrega do backend
+});
 </script>
 </body>
 </html>
