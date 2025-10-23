@@ -76,8 +76,8 @@
       <div class="sub">Excelencia Lingerie</div>
     </div>
     <div class="tool-row">
-      <button id="exportBtn.onclick = downloadAllJSON" class="ghost small" title="Exportar todos os chamados como JSON">Exportar JSON</button>
-      <button id="exportPdfBtn.onclick = exportAllPdf" class="ghost small" title="Exportar todos os chamados em PDF">Exportar PDF</button>
+      <button id="exportBtn" class="ghost small" title="Exportar todos os chamados como JSON">Exportar JSON</button>
+      <button id="exportPdfBtn" class="ghost small" title="Exportar todos os chamados em PDF">Exportar PDF</button>
       <label class="ghost small" style="cursor:pointer;display:inline-flex;align-items:center;">
         <input type="file" id="importFile" accept="application/json" style="display:none" />
         Importar JSON
@@ -168,6 +168,8 @@ const exportPdfBtn = el("exportPdfBtn");
 const importFile = el("importFile");
 const clearBtn = el("clearBtn");
 
+
+
 // helpers
 function priorityLabel(p){ if(p==="alta") return "Alta"; if(p==="baixa") return "Baixa"; return "Normal"; }
 function statusBadgeClass(s){ if(s==="Aberto") return "badge open"; if(s==="Em Progresso") return "badge progress"; if(s==="Fechado") return "badge closed"; return "badge"; }
@@ -202,6 +204,8 @@ async function deleteTicketDB(id){
   const res = await fetch(`${API_URL}?id=${id}`, {method:"DELETE"});
   if(res.ok){ tickets=tickets.filter(t=>t.id!==id); render(); }
 }
+
+
 
 function downloadJSON(obj, filename = "data.json") {
   if (!obj) return;
@@ -273,7 +277,9 @@ function exportAllPdf() {
   doc.save("todos-chamados.pdf");
 }
 
-
+// LIGAÇÃO DOS BOTÕES DE EXPORTAÇÃO
+exportBtn.onclick = downloadAllJSON;
+exportPdfBtn.onclick = exportAllPdf;
 // ---------- render ----------
 function render(){
   let list = tickets.slice();
