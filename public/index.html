@@ -101,7 +101,7 @@
       </div>
       <div style="margin-top:10px" class="form-row" >
         <div style="flex:1" class="meta">
-          <input id="ownerInput" type="text" placeholder="Solicitante (opcional)" style="padding:8px;border-radius:8px;background:var(--card);border:1px solid rgba(255,255,255,0.03);color:var(--muted);width:220px" />
+          <input id="ownerInput" type="text" placeholder="Tecnico" style="padding:8px;border-radius:8px;background:var(--card);border:1px solid rgba(255,255,255,0.03);color:var(--muted);width:220px" />
           <span class="sub" style="margin-left:6px">Pressione Criar para adicionar</span>
         </div>
         <div style="display:flex;gap:8px">
@@ -229,7 +229,7 @@ function exportTicketPdf(ticket) {
   doc.setFontSize(12);
   doc.text(`Título: ${ticket.titulo}`, 10, 30);
   doc.text(`Descrição: ${ticket.descricao}`, 10, 40);
-  doc.text(`Solicitante: ${ticket.solicitante || "—"}`, 10, 50);
+  doc.text(`Tecnico: ${ticket.tecnico || "—"}`, 10, 50);
   doc.text(`Prioridade: ${ticket.prioridade}`, 10, 60);
   doc.text(`Status: ${ticket.status}`, 10, 70);
   doc.text(`Criado em: ${new Date(ticket.criado_em).toLocaleString()}`, 10, 80);
@@ -262,7 +262,7 @@ function exportAllPdf() {
     doc.setFontSize(12);
     doc.text(`Título: ${t.titulo}`, 10, y); y += 6;
     doc.text(`Descrição: ${t.descricao}`, 10, y); y += 6;
-    doc.text(`Solicitante: ${t.solicitante || "—"}`, 10, y); y += 6;
+    doc.text(`Tecnico: ${t.tecnico || "—"}`, 10, y); y += 6;
     doc.text(`Prioridade: ${t.prioridade}`, 10, y); y += 6;
     doc.text(`Status: ${t.status}`, 10, y); y += 6;
     doc.text(`Criado em: ${new Date(t.criado_em).toLocaleString()}`, 10, y); y += 6;
@@ -285,7 +285,7 @@ function render(){
   let list = tickets.slice();
   const query = (searchInput.value||"").trim().toLowerCase();
   const status = statusFilter.value;
-  if(query) list = list.filter(t=> (t.titulo||"").toLowerCase().includes(query) || (t.descricao||"").toLowerCase().includes(query) || (t.solicitante||"").toLowerCase().includes(query));
+  if(query) list = list.filter(t=> (t.titulo||"").toLowerCase().includes(query) || (t.descricao||"").toLowerCase().includes(query) || (t.tecnico||"").toLowerCase().includes(query));
   if(status!=="all") list=list.filter(t=>t.status===status);
 
   const sortMode = sortSelect.value;
@@ -307,7 +307,7 @@ function render(){
             <h3>${escapeHtml(t.titulo)} <span style="font-weight:600;color:var(--muted);font-size:12px">• ${priorityLabel(t.prioridade)}</span></h3>
             <div class="meta" style="margin-top:6px">
               <div class="${statusBadgeClass(t.status)}">${t.status}</div>
-              <div>Solicitante: ${escapeHtml(t.solicitante||"—")}</div>
+              <div>tecnico: ${escapeHtml(t.tecnico||"—")}</div>
               <div>Criado: ${formatDate(t.criado_em)}</div>
             </div>
           </div>
@@ -336,7 +336,7 @@ function changeStatusDialog(id) {
     updateTicketDB(id, { 
       titulo: t.titulo, 
       descricao: t.descricao, 
-      solicitante: t.solicitante, 
+      tecnico: t.tecnico, 
       prioridade: t.prioridade, 
       status: newStatus 
     });
@@ -361,7 +361,7 @@ function changeStatusDialog(id) {
 // ---------- edit ----------
 function startEdit(id){
   const t=tickets.find(x=>x.id==id); if(!t) return alert("Chamado não encontrado");
-  editingId=id; titleInput.value=t.titulo; descInput.value=t.descricao; ownerInput.value=t.solicitante||""; prioritySelect.value=t.prioridade||"normal";
+  editingId=id; titleInput.value=t.titulo; descInput.value=t.descricao; ownerInput.value=t.tecnico||""; prioritySelect.value=t.prioridade||"normal";
   createBtn.style.display="none"; updateBtn.style.display="inline-block"; cancelEditBtn.style.display="inline-block";
 }
 function cancelEdit(){ editingId=null; titleInput.value=""; descInput.value=""; ownerInput.value=""; prioritySelect.value="normal"; createBtn.style.display="inline-block"; updateBtn.style.display="none"; cancelEditBtn.style.display="none"; }
@@ -370,7 +370,7 @@ function commitEdit() {
   const titulo = titleInput.value.trim();
   const descricao = descInput.value.trim();
   if(!titulo||!descricao) return alert("Título e descrição são obrigatórios.");
-  updateTicketDB(editingId, { titulo, descricao, solicitante: ownerInput.value.trim(), prioridade: prioritySelect.value });
+  updateTicketDB(editingId, { titulo, descricao, tecnico: ownerInput.value.trim(), prioridade: prioritySelect.value });
   cancelEdit();
 }
 
@@ -379,7 +379,7 @@ createBtn.onclick = async () => {
   const titulo = titleInput.value.trim();
   const descricao = descInput.value.trim();
   if(!titulo||!descricao) return alert("Preencha título e descrição.");
-  await createTicketDB({ titulo, descricao, solicitante: ownerInput.value.trim(), prioridade: prioritySelect.value });
+  await createTicketDB({ titulo, descricao, tecnico: ownerInput.value.trim(), prioridade: prioritySelect.value });
   titleInput.value = ""; descInput.value = ""; ownerInput.value = ""; prioritySelect.value = "normal"; titleInput.focus();
 };
 updateBtn.onclick = () => commitEdit();
