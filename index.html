@@ -256,6 +256,7 @@ body.monitor-mode::after {
           <option value="all">Todos os status</option>
           <option value="Aberto">Aberto</option>
           <option value="Em Progresso">Em Progresso</option>
+          <option value="AbertoEmProgresso">Abertos e Em Progresso</option>
           <option value="Fechado">Fechado</option>
         </select>
         <select id="sortSelect">
@@ -481,7 +482,13 @@ function render(){
   const query = (searchInput.value||"").trim().toLowerCase();
   const status = statusFilter.value;
   if(query) list = list.filter(t=> (t.titulo||"").toLowerCase().includes(query) || (t.descricao||"").toLowerCase().includes(query) || (t.tecnico||"").toLowerCase().includes(query));
-  if(status!=="all") list=list.filter(t=>t.status===status);
+  if (status !== "all") {
+  if (status === "AbertoEmProgresso") {
+    list = list.filter(t => t.status === "Aberto" || t.status === "Em Progresso");
+  } else {
+    list = list.filter(t => t.status === status);
+  }
+}
 
   const sortMode = sortSelect.value;
   if(sortMode==="newest") list.sort((a,b)=>new Date(b.criado_em)-new Date(a.criado_em));
@@ -592,13 +599,7 @@ window.addEventListener("load", async () => {
 });
 
 
-const monitorBtn = document.getElementById("monitorBtn");
-monitorBtn.onclick = () => {
-  document.body.classList.toggle("monitor-mode");
-  monitorBtn.textContent = document.body.classList.contains("monitor-mode")
-    ? "🔙 Sair do Modo Monitor"
-    : "🖥️ Modo Monitor";
-};
+
 // --- Atualização automática no modo monitor ---
 let monitorInterval = null;
 
