@@ -594,7 +594,7 @@ sortSelect.onchange = ()=>render();
 window.addEventListener("load", async () => {
   await loadTicketsDB();
   // Filtra automaticamente "Aberto" ao carregar
-  statusFilter.value = "Aberto";
+  statusFilter.value = "Aberto", "Em Progresso";
   render();
 });
 
