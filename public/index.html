@@ -583,13 +583,22 @@ searchInput.oninput = debounce(()=>render(),250);
 statusFilter.onchange = ()=>render();
 sortSelect.onchange = ()=>render();
 
+
+function renderFiltered(statusList) {
+  const listEl = document.getElementById("list");
+  const data = JSON.parse(localStorage.getItem("ticketsDB") || "[]");
+  const filtered = data.filter(t => statusList.includes(t.status));
+  listEl.innerHTML = filtered.map(ticketToHTML).join("");
+}
+
+
 // ---------- inicializa ----------
 window.addEventListener("load", async () => {
   await loadTicketsDB();
-  // Filtra automaticamente "Aberto" ao carregar
-  statusFilter.value = "Aberto";
-  render();
+  // Mostra apenas chamados "Abertos" e "Em Progresso" ao iniciar
+  renderFiltered(["Aberto", "Em Progresso"]);
 });
+
 
 
 
