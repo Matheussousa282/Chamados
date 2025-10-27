@@ -584,14 +584,50 @@ statusFilter.onchange = ()=>render();
 sortSelect.onchange = ()=>render();
 
 // ---------- inicializa ----------
-window.addEventListener("load", () => loadTicketsDB());
+window.addEventListener("load", async () => {
+  await loadTicketsDB();
+  // Filtra automaticamente "Aberto" ao carregar
+  statusFilter.value = "Aberto";
+  render();
+});
 
+
+
+// --- Atualização automática no modo monitor ---
+let monitorInterval = null;
+
+function startMonitorAutoRefresh() {
+  if (monitorInterval) return; // evita duplicar
+  monitorInterval = setInterval(() => {
+    if (document.body.classList.contains("monitor-mode")) {
+      console.log("🔄 Atualizando lista automaticamente...");
+      loadTicketsDB();
+    }
+  }, 30000); // 30 segundos
+}
+
+function stopMonitorAutoRefresh() {
+  if (monitorInterval) {
+    clearInterval(monitorInterval);
+    monitorInterval = null;
+  }
+}
+
+// --- Alternar modo monitor ---
 const monitorBtn = document.getElementById("monitorBtn");
 monitorBtn.onclick = () => {
   document.body.classList.toggle("monitor-mode");
-  monitorBtn.textContent = document.body.classList.contains("monitor-mode")
+
+  const ativo = document.body.classList.contains("monitor-mode");
+  monitorBtn.textContent = ativo
     ? "🔙 Sair do Modo Monitor"
     : "🖥️ Modo Monitor";
+
+  if (ativo) {
+    startMonitorAutoRefresh();
+  } else {
+    stopMonitorAutoRefresh();
+  }
 };
 
 </script>
