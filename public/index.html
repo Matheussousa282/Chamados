@@ -594,7 +594,7 @@ sortSelect.onchange = ()=>render();
 window.addEventListener("load", async () => {
   await loadTicketsDB();
   // Filtra automaticamente "Aberto" ao carregar
-  statusFilter.value = "Aberto", "Em Progresso";
+  statusFilter.value = "Aberto";
   render();
 });
 
@@ -602,6 +602,13 @@ window.addEventListener("load", async () => {
 
 // --- Atualização automática no modo monitor ---
 let monitorInterval = null;
+
+function applyMonitorFilter() {
+  // Define o filtro de status como Aberto + Em Progresso
+  statusFilter.value = "AbertoEmProgresso";
+  render();
+}
+
 
 function startMonitorAutoRefresh() {
   if (monitorInterval) return; // evita duplicar
@@ -631,6 +638,7 @@ monitorBtn.onclick = () => {
     : "🖥️ Modo Monitor";
 
   if (ativo) {
+    applyMonitorFilter();
     startMonitorAutoRefresh();
   } else {
     stopMonitorAutoRefresh();
