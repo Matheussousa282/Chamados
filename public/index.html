@@ -153,6 +153,51 @@
   background: #0f1724;
 }
 
+/* ---------- Modo Monitor ---------- */
+body.monitor-mode header,
+body.monitor-mode section.card:first-of-type {
+  display: none;
+}
+
+body.monitor-mode .container {
+  max-width: 100%;
+  padding: 0;
+}
+
+body.monitor-mode section.card {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+body.monitor-mode #list {
+  margin-top: 0;
+}
+
+body.monitor-mode .ticket {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  font-size: 16px;
+}
+
+body.monitor-mode {
+  background: #0a0f17;
+}
+
+body.monitor-mode .tool-row {
+  display: none;
+}
+
+body.monitor-mode::after {
+  content: "MONITOR MODE";
+  position: fixed;
+  bottom: 10px;
+  right: 20px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 2px;
+}
+
   </style>
   <!-- jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -165,6 +210,7 @@
       <div class="sub">Excelencia Lingerie</div>
     </div>
     <div class="tool-row">
+      
       <button id="exportBtn" class="ghost small" title="Exportar todos os chamados como JSON">Exportar JSON</button>
       <button id="exportPdfBtn" class="ghost small" title="Exportar todos os chamados em PDF">Exportar PDF</button>
       <label class="ghost small" style="cursor:pointer;display:inline-flex;align-items:center;">
@@ -174,7 +220,7 @@
       <button id="clearBtn" class="danger small" title="Remover todos os chamados">Limpar tudo</button>
     </div>
   </header>
-
+       <button id="monitorBtn" class="ghost small">🖥️ Modo Monitor</button>
   <section class="card">
     <form id="ticketForm" class="col" onsubmit="return false;">
       <div class="form-row gap">
@@ -539,6 +585,15 @@ sortSelect.onchange = ()=>render();
 
 // ---------- inicializa ----------
 window.addEventListener("load", () => loadTicketsDB());
+
+const monitorBtn = document.getElementById("monitorBtn");
+monitorBtn.onclick = () => {
+  document.body.classList.toggle("monitor-mode");
+  monitorBtn.textContent = document.body.classList.contains("monitor-mode")
+    ? "🔙 Sair do Modo Monitor"
+    : "🖥️ Modo Monitor";
+};
+
 </script>
 
 </body>
