@@ -528,23 +528,65 @@ function render(){
     listEl.appendChild(item);
   }
 
-  // --- Função global para alterar status ---
+// --- Modal de alteração de status ---
 function changeStatusDialog(id) {
   const t = tickets.find(x => x.id == id);
-  if(!t) return alert("Chamado não encontrado");
+  if (!t) return alert("Chamado não encontrado");
 
-  const newStatus = prompt("Novo status (Aberto, Em Progresso, Fechado):", t.status);
-  if(newStatus && ["Aberto","Em Progresso","Fechado"].includes(newStatus)) {
-    updateTicketDB(id, { 
-      titulo: t.titulo, 
-      descricao: t.descricao, 
-      tecnico: t.tecnico, 
-      prioridade: t.prioridade, 
-      status: newStatus 
+  // Cria o modal
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100%";
+  overlay.style.height = "100%";
+  overlay.style.background = "rgba(0,0,0,0.6)";
+  overlay.style.display = "flex";
+  overlay.style.alignItems = "center";
+  overlay.style.justifyContent = "center";
+  overlay.style.zIndex = "9999";
+
+  const modal = document.createElement("div");
+  modal.style.background = "var(--card)";
+  modal.style.border = "1px solid rgba(255,255,255,0.1)";
+  modal.style.borderRadius = "12px";
+  modal.style.padding = "20px";
+  modal.style.minWidth = "280px";
+  modal.style.color = "var(--muted)";
+  modal.style.boxShadow = "0 6px 20px rgba(0,0,0,0.5)";
+  modal.innerHTML = `
+    <h3 style="margin-top:0;font-size:16px;color:#18f0e5">Alterar Status</h3>
+    <p style="font-size:14px;margin-bottom:10px;">Selecione o novo status do chamado:</p>
+    <select id="statusSelectModal" style="width:100%;padding:8px;background:var(--bg);color:#18f0e5;border-radius:8px;border:1px solid rgba(255,255,255,0.1);">
+      <option value="Aberto" ${t.status==="Aberto"?"selected":""}>Aberto</option>
+      <option value="Em Progresso" ${t.status==="Em Progresso"?"selected":""}>Em Progresso</option>
+      <option value="Fechado" ${t.status==="Fechado"?"selected":""}>Fechado</option>
+    </select>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+      <button id="cancelStatusBtn" class="ghost small">Cancelar</button>
+      <button id="confirmStatusBtn" class="small" style="background:var(--accent);color:#042027;">Salvar</button>
+    </div>
+  `;
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  // Fechar modal
+  const closeModal = () => document.body.removeChild(overlay);
+
+  // Eventos dos botões
+  modal.querySelector("#cancelStatusBtn").onclick = closeModal;
+  modal.querySelector("#confirmStatusBtn").onclick = async () => {
+    const newStatus = modal.querySelector("#statusSelectModal").value;
+    await updateTicketDB(id, {
+      titulo: t.titulo,
+      descricao: t.descricao,
+      tecnico: t.tecnico,
+      prioridade: t.prioridade,
+      status: newStatus
     });
-  } else if(newStatus) {
-    alert("Status inválido!");
-  }
+    closeModal();
+  };
 }
 
   qsa("button[data-action]", listEl).forEach(btn=>{
