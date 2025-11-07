@@ -626,15 +626,29 @@ function commitEdit() {
 createBtn.onclick = async () => {
   const titulo = titleInput.value.trim();
   const descricao = descInput.value.trim();
-  if(!titulo||!descricao) return alert("Preencha título e descrição.");
-  await createTicketDB({ titulo, descricao, tecnico: ownerInput.value.trim(), prioridade: prioritySelect.value });
-  titleInput.value = ""; descInput.value = ""; ownerInput.value = ""; prioritySelect.value = "normal"; titleInput.focus();
+  if (!titulo || !descricao) return alert("Preencha título e descrição.");
+
+  await createTicketDB({
+    titulo,
+    descricao,
+    tecnico: ownerInput.value.trim(),
+    prioridade: prioritySelect.value
+  });
+
+  // limpa campos
+  titleInput.value = "";
+  descInput.value = "";
+  ownerInput.value = "";
+  prioritySelect.value = "normal";
+  titleInput.focus();
+
+  // 🔊 Fala "Chamado criado com sucesso"
+  const mensagem = new SpeechSynthesisUtterance("Chamado criado com sucesso!");
+  mensagem.lang = "pt-BR";
+  mensagem.rate = 1;   // velocidade
+  mensagem.pitch = 1;  // tom
+  window.speechSynthesis.speak(mensagem);
 };
-updateBtn.onclick = () => commitEdit();
-cancelEditBtn.onclick = () => cancelEdit();
-searchInput.oninput = debounce(()=>render(),250);
-statusFilter.onchange = ()=>render();
-sortSelect.onchange = ()=>render();
 
 // ---------- inicializa ----------
 window.addEventListener("load", async () => {
