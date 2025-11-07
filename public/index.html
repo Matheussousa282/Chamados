@@ -290,19 +290,20 @@ function resize() {
 window.addEventListener("resize", resize);
 resize();
 
-// função que cria uma nova logo vindo de baixo
+// cria uma nova logo em posição aleatória
 function spawnLogo() {
   return {
-    x: Math.random() * w,            // posição X aleatória
-    y: h + 50,                       // começa abaixo da tela
-    vy: -0.3 - Math.random() * 0.7,  // sobe para cima
-    size: 40 + Math.random() * 50,   // tamanho aleatório
-    alpha: 0,                        // começa invisível
+    x: Math.random() * w,             // posição X aleatória
+    y: Math.random() * h,             // posição Y aleatória
+    vx: (Math.random() - 0.5) * 0.3,  // movimento leve horizontal
+    vy: (Math.random() - 0.5) * 0.3,  // movimento leve vertical
+    size: 25 + Math.random() * 20,    // 🔹 tamanho menor (25–45px)
+    alpha: Math.random() * 0.7 + 0.3, // transparência aleatória
   };
 }
 
 // adiciona várias logos iniciais
-for (let i = 0; i < 20; i++) {
+for (let i = 0; i < 30; i++) {
   logos.push(spawnLogo());
 }
 
@@ -311,32 +312,26 @@ function draw() {
   ctx.fillStyle = "rgba(10, 20, 30, 0.9)";
   ctx.fillRect(0, 0, w, h);
 
-  // adiciona novas logos ao longo do tempo
-  if (logos.length < 50 && Math.random() < 0.05) {
-    logos.push(spawnLogo());
-  }
-
   for (let i = 0; i < logos.length; i++) {
     const p = logos[i];
+    p.x += p.vx;
     p.y += p.vy;
-    p.alpha = Math.min(p.alpha + 0.01, 1); // efeito de fade-in
 
-    // desenha a logo
-    ctx.globalAlpha = p.alpha * 0.8;
+    // rebater nas bordas
+    if (p.x < -p.size) p.x = w + p.size;
+    if (p.x > w + p.size) p.x = -p.size;
+    if (p.y < -p.size) p.y = h + p.size;
+    if (p.y > h + p.size) p.y = -p.size;
+
+    // desenha logo
+    ctx.globalAlpha = p.alpha;
     ctx.drawImage(logoImg, p.x, p.y, p.size, p.size);
     ctx.globalAlpha = 1;
-
-    // se saiu da tela por cima, remove
-    if (p.y + p.size < 0) {
-      logos.splice(i, 1);
-      i--;
-    }
   }
 
   requestAnimationFrame(draw);
 }
 
-// só começa a animar quando a imagem carregar
 logoImg.onload = () => {
   draw();
 };
