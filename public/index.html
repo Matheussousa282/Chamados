@@ -650,6 +650,10 @@ createBtn.onclick = async () => {
   window.speechSynthesis.speak(mensagem);
 };
 
+// botões de edição
+updateBtn.onclick = commitEdit;
+cancelEditBtn.onclick = cancelEdit;
+
 // ---------- inicializa ----------
 window.addEventListener("load", async () => {
   await loadTicketsDB();
