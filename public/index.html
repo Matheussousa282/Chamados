@@ -589,8 +589,18 @@ function changeStatusDialog(id) {
       prioridade: t.prioridade,
       status: newStatus
     });
-    closeModal();
-  };
+    
+   // 🔊 Voz ao atualizar status
+  const mensagem = new SpeechSynthesisUtterance(
+    `Status do chamado atualizado para ${newStatus}`
+  );
+  mensagem.lang = "pt-BR";
+  mensagem.rate = 1;
+  mensagem.pitch = 1;
+  window.speechSynthesis.speak(mensagem);
+
+  closeModal();
+};
 }
 
   qsa("button[data-action]", listEl).forEach(btn=>{
