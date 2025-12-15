@@ -622,6 +622,12 @@ function commitEdit() {
   cancelEdit();
 }
 
+// filtros e busca
+searchInput.addEventListener("input", debounce(render, 300));
+statusFilter.addEventListener("change", render);
+sortSelect.addEventListener("change", render);
+
+
 // ---------- events ----------
 createBtn.onclick = async () => {
   const titulo = titleInput.value.trim();
